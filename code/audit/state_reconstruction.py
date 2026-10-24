@@ -48,6 +48,30 @@ class DeletionAuditEngine:
                     "details": str(r["details"]) if pd.notna(r["details"]) else "",
                 })
 
+    def _canonicalize_system_id(self, sys_id: str, rid: str = "") -> str:
+        s = str(sys_id).lower() if sys_id else ""
+        r = str(rid).lower() if rid else ""
+
+        if "search" in s or r.startswith("search_"):
+            return "search_service"
+        elif "analytics" in s or "marketing" in s or r.startswith("analytics_"):
+            return "analytics_platform"
+        elif "support" in s or "attachment" in s or r.startswith("support_"):
+            return "support_platform"
+        elif "export" in s or r.startswith("export_"):
+            return "export_service"
+        elif "integration" in s or "connector" in s or "delivery" in s or r.startswith("data_flow_"):
+            return "integration_service"
+        elif "backup" in s or "restore" in s or r.startswith("backup_"):
+            return "backup_service"
+        elif "security" in s or "legal" in s or "audit" in s or r.startswith("audit_record_"):
+            return "security_service"
+        elif "identity" in s or "tombstone" in s or r.startswith("tombstone_"):
+            return "identity_service"
+        elif "account" in s or r.startswith("account_"):
+            return "account_service"
+        return "account_service"
+
     def audit_case(self, case_row: Dict[str, Any]) -> Tuple[str, List[Dict[str, Any]]]:
         """Audits a single request case.
 
@@ -78,9 +102,10 @@ class DeletionAuditEngine:
         for ev in evidence_list:
             rid = ev["resource_id"]
             if rid:
+                canon_sys = self._canonicalize_system_id(ev["system_id"], rid)
                 user_resources[rid] = {
                     "resource_id": rid,
-                    "system_id": ev["system_id"],
+                    "system_id": canon_sys,
                     "resource_type": ev["resource_type"],
                     "state_observed": ev["state_observed"],
                     "evidence_id": ev["file_id"],
@@ -107,26 +132,27 @@ class DeletionAuditEngine:
 
             if is_match and rid:
                 if rid not in user_resources:
-                    sys_id = act["target_system"] or act["source_system"]
+                    raw_sys = act["target_system"] or act["source_system"]
+                    canon_sys = self._canonicalize_system_id(raw_sys, rid)
                     res_type = "USER_PROFILE"
-                    if "search" in sys_id:
+                    if "search" in canon_sys:
                         res_type = "SEARCH_INDEX_ENTRY"
-                    elif "analytics" in sys_id:
+                    elif "analytics" in canon_sys:
                         res_type = "ANALYTICS_PROFILE"
-                    elif "support" in sys_id:
+                    elif "support" in canon_sys:
                         res_type = "SUPPORT_MESSAGE"
-                    elif "export" in sys_id:
+                    elif "export" in canon_sys:
                         res_type = "USER_EXPORT"
-                    elif "integration" in sys_id or "connector" in details:
+                    elif "integration" in canon_sys or "connector" in details:
                         res_type = "DATA_FLOW"
-                    elif "backup" in sys_id:
+                    elif "backup" in canon_sys:
                         res_type = "BACKUP_ARCHIVE"
-                    elif "security" in sys_id or "audit" in details:
+                    elif "security" in canon_sys or "audit" in details:
                         res_type = "SECURITY_AUDIT_LOG"
 
                     user_resources[rid] = {
                         "resource_id": rid,
-                        "system_id": sys_id,
+                        "system_id": canon_sys,
                         "resource_type": res_type,
                         "state_observed": "ABSENT" if act["event_type"] == "DELETE_RECORD" and act["reported_result"] == "SUCCESS" else "PRESENT",
                         "evidence_id": act["activity_id"],
@@ -142,7 +168,7 @@ class DeletionAuditEngine:
         has_violations = False
 
         for rid, info in sorted(user_resources.items()):
-            sys_id = info["system_id"]
+            sys_id = self._canonicalize_system_id(info["system_id"], rid)
             res_type = info["resource_type"]
             state = info["state_observed"]
             ev_id = info["evidence_id"]
