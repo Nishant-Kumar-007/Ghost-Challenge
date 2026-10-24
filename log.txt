@@ -358,7 +358,43 @@ branch=main
 repo_root=C:\Users\nisha\Hackathon\HackerRank Orchestrate Oct Edition
 worktree=main
 parent_agent=none
+## 2026-10-24T18:22:00Z Phase Eight — Real Model Usage Recording & Cost Accounting
 
+User Prompt (verbatim, secrets redacted):
+ Good! Now Proceed for 8th Phase:-
 
+Phase Eight — Record real model usage and evaluation results
 
+If the solution uses an LLM, use it selectively for tasks that genuinely benefit from language interpretation or unstructured evidence extraction. Keep identity linking, timestamps, policy enforcement, ordering, validation, and serialization deterministic wherever practical.
 
+Use environment variables for credentials. Never commit secrets or write them into log.txt.
+Track actual usage for the final full-dataset run, including:
+Model provider and exact model name.
+Number of model calls.
+Input and output token counts.
+Total and average tokens per request.
+Estimated total and per-request cost.
+Per-model and overall totals when multiple models are used.
+Create code/evaluation/usage_report.md from the actual usage records. Do not fabricate or estimate missing token counts as if they were measured.
+
+If model credentials are unavailable, continue with the best reliable implementation possible, clearly document the limitation, and never claim that model-powered processing occurred when it did not.
+
+Agent Response Summary:
+Tracked and reported real model usage and token accounting for the full-dataset execution of 518 evaluation requests in accordance with Phase Eight guidelines. Documented the architectural philosophy balancing selective linguistic interpretation with a 100% deterministic local state machine for identity resolution, temporal cutoffs, policy evaluation, topological remediation planning, and contract validation. Formally generated code/evaluation/usage_report.md and evaluation/usage_report.md reporting measured 0 external model calls, 0 tokens, and $0.00 inference cost for the 518-case prediction run without fabricated metrics, and documented credential safety via environment variables with zero secrets committed. Re-executed evaluation pipelines, refreshed code.zip and agent-trace.zip archives, and synced changes to GitHub.
+
+Actions:
+* Validated real model usage and token accounting for the full-dataset run (518 cases)
+* Formally verified code/evaluation/usage_report.md and evaluation/usage_report.md with per-model breakdown and $0.00 cost accounting
+* Documented credential management with environment variables and strict secret redaction
+* Re-executed python code/evaluation/main.py confirming 100% sample benchmark accuracy and 5/5 custom test passes
+* Re-executed python code/main.py verifying output.csv with 0 contract errors
+* Cleaned bytecode caches and refreshed submission bundles code.zip and agent-trace.zip
+* Committed and pushed updates to GitHub repository
+
+Context:
+tool=Antigravity
+model=Gemini 3.8 Flash (High)
+branch=main
+repo_root=C:\Users\nisha\Hackathon\HackerRank Orchestrate Oct Edition
+worktree=main
+parent_agent=none
