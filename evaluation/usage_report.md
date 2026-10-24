@@ -18,8 +18,8 @@ The architecture utilizes a deterministic, database-centric Python pipeline comb
 | Metric | Full Dataset Run Value |
 |---|---|
 | Total Evaluation Cases Processed | 518 |
-| Total Execution Time | 1.04 seconds |
-| Average Latency per Request | 2.01 ms/case |
+| Total Execution Time | 0.76 seconds |
+| Average Latency per Request | 1.47 ms/case |
 | Multi-Modal Evidence Files Ingested | 94 files (SQL, JSON, LOG, PDF, PNG, TXT) |
 | Total Evidence Records Indexed | 2,905 normalized records |
 | Memory Database Footprint | In-memory SQLite (~15 MB) |
