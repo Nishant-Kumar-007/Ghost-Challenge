@@ -69,7 +69,11 @@ def run_pipeline(
     print(f"Saved {len(out_df)} predictions to {output_csv}")
 
     # 4. Strict Validation
-    validator = OutputValidator(expected_row_count=total_cases)
+    validator = OutputValidator(
+        expected_row_count=total_cases,
+        requests_csv_path=requests_csv,
+        evidence_csv_path=os.path.join(dataset_dir, "evidence_files.csv")
+    )
     is_valid, errors = validator.validate_file(output_csv)
     if is_valid:
         print(f"VALIDATION PASSED: {output_csv} strictly conforms to all challenge contracts.")
