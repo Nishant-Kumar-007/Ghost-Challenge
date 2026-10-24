@@ -34,7 +34,6 @@ class PolicyEvaluator:
         rule = self.rules.get(data_category)
         if rule:
             return rule["required_action"]
-        # Defaults based on challenge spec
         defaults = {
             "USER_PROFILE": "DELETE",
             "SECONDARY_IDENTIFIER": "DELETE",
@@ -54,3 +53,133 @@ class PolicyEvaluator:
             "DATA_FLOW": "DISABLE",
         }
         return defaults.get(data_category, "DELETE")
+
+    def evaluate_compliance(
+        self,
+        data_category: str,
+        observed_state: str,
+    ) -> Dict[str, Any]:
+        """Evaluates whether an observed resource state satisfies deletion policy.
+
+        Returns a dictionary containing compliance status, required operations,
+        and target states.
+        """
+        req_action = self.get_required_action(data_category)
+
+        # 1. Categories requiring deletion
+        if data_category in [
+            "USER_PROFILE", "SECONDARY_IDENTIFIER", "SEARCH_INDEX_ENTRY",
+            "CACHE_ENTRY", "USER_EXPORT", "MARKETING_PROFILE", "SUPPORT_ATTACHMENT"
+        ]:
+            if observed_state == "PRESENT":
+                return {
+                    "is_compliant": False,
+                    "required_action": "DELETE",
+                    "finding": {"operation": "REPORT_REMAINING_RECORD", "state": "PRESENT"},
+                    "remediation": {"operation": "DELETE_RECORD", "state": "ABSENT"},
+                    "verification": {"operation": "VERIFY_RECORD_ABSENT", "state": "ABSENT"},
+                }
+            else:
+                return {
+                    "is_compliant": True,
+                    "required_action": "DELETE",
+                    "finding": None,
+                    "remediation": None,
+                    "verification": {"operation": "VERIFY_RECORD_ABSENT", "state": "ABSENT"},
+                }
+
+        # 2. Categories requiring redaction (support messages, delivery logs, account tombstones)
+        elif data_category in ["SUPPORT_MESSAGE", "EMAIL_DELIVERY_LOG", "ACCOUNT_TOMBSTONE"]:
+            if observed_state == "PRESENT":
+                return {
+                    "is_compliant": False,
+                    "required_action": "REDACT",
+                    "finding": {"operation": "REPORT_EXPOSED_PII", "state": "PRESENT"},
+                    "remediation": {"operation": "REDACT_RECORD", "state": "REDACTED"},
+                    "verification": {"operation": "VERIFY_RECORD_REDACTED", "state": "REDACTED"},
+                }
+            else:
+                return {
+                    "is_compliant": True,
+                    "required_action": "REDACT",
+                    "finding": None,
+                    "remediation": None,
+                    "verification": {"operation": "VERIFY_RECORD_REDACTED", "state": "REDACTED"},
+                }
+
+        # 3. Categories requiring anonymization (analytics profiles, product telemetry)
+        elif data_category in ["ANALYTICS_PROFILE", "PRODUCT_TELEMETRY"]:
+            if observed_state == "PRESENT":
+                return {
+                    "is_compliant": False,
+                    "required_action": "ANONYMIZE",
+                    "finding": {"operation": "REPORT_EXPOSED_PII", "state": "PRESENT"},
+                    "remediation": {"operation": "ANONYMIZE_RECORD", "state": "ANONYMIZED"},
+                    "verification": {"operation": "VERIFY_RECORD_ANONYMIZED", "state": "ANONYMIZED"},
+                }
+            else:
+                return {
+                    "is_compliant": True,
+                    "required_action": "ANONYMIZE",
+                    "finding": None,
+                    "remediation": None,
+                    "verification": {"operation": "VERIFY_RECORD_ANONYMIZED", "state": "ANONYMIZED"},
+                }
+
+        # 4. Active data flow processes
+        elif data_category in ["DATA_FLOW"]:
+            if observed_state == "ACTIVE":
+                return {
+                    "is_compliant": False,
+                    "required_action": "DISABLE",
+                    "finding": {"operation": "REPORT_ACTIVE_DATA_FLOW", "state": "ACTIVE"},
+                    "remediation": {"operation": "DISABLE_DATA_FLOW", "state": "DISABLED"},
+                    "verification": {"operation": "VERIFY_DATA_FLOW_DISABLED", "state": "DISABLED"},
+                }
+            else:
+                return {
+                    "is_compliant": True,
+                    "required_action": "DISABLE",
+                    "finding": None,
+                    "remediation": None,
+                    "verification": {"operation": "VERIFY_DATA_FLOW_DISABLED", "state": "DISABLED"},
+                }
+
+        # 5. Backup archives / restore risks
+        elif data_category in ["BACKUP_ARCHIVE"]:
+            if observed_state == "ACTIVE":
+                return {
+                    "is_compliant": False,
+                    "required_action": "BLOCK",
+                    "finding": {"operation": "REPORT_RESTORE_RISK", "state": "ACTIVE"},
+                    "remediation": {"operation": "BLOCK_RESTORE", "state": "BLOCKED"},
+                    "verification": {"operation": "VERIFY_RESTORE_BLOCKED", "state": "BLOCKED"},
+                }
+            else:
+                return {
+                    "is_compliant": True,
+                    "required_action": "BLOCK",
+                    "finding": None,
+                    "remediation": None,
+                    "verification": {"operation": "VERIFY_RESTORE_BLOCKED", "state": "BLOCKED"},
+                }
+
+        # 6. Categories requiring retention (security audit logs, legal hold records)
+        elif data_category in ["SECURITY_AUDIT_LOG", "LEGAL_HOLD_RECORD"]:
+            return {
+                "is_compliant": True,
+                "required_action": "RETAIN",
+                "finding": None,
+                "remediation": None,
+                "verification": {"operation": "VERIFY_RECORD_PRESENT", "state": "PRESENT"},
+            }
+
+        # Default fallback
+        return {
+            "is_compliant": observed_state == "ABSENT",
+            "required_action": "DELETE",
+            "finding": {"operation": "REPORT_REMAINING_RECORD", "state": "PRESENT"} if observed_state == "PRESENT" else None,
+            "remediation": {"operation": "DELETE_RECORD", "state": "ABSENT"} if observed_state == "PRESENT" else None,
+            "verification": {"operation": "VERIFY_RECORD_ABSENT", "state": "ABSENT"},
+        }
+

@@ -177,241 +177,48 @@ class DeletionAuditEngine:
             if not ev_id.startswith("evidence_") and state in ["PRESENT", "ACTIVE"]:
                 continue
 
-            required_action = self.policy_evaluator.get_required_action(res_type)
+            eval_res = self.policy_evaluator.evaluate_compliance(res_type, state)
 
-            # Check Resource Violations
-            if res_type in ["USER_PROFILE", "SECONDARY_IDENTIFIER", "SEARCH_INDEX_ENTRY", "USER_EXPORT", "MARKETING_PROFILE", "SUPPORT_ATTACHMENT"]:
-                if state == "PRESENT":
-                    has_violations = True
-                    findings.append({
-                        "phase": "FINDING",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "REPORT_REMAINING_RECORD",
-                        "state": "PRESENT",
-                        "evidence_id": ev_id,
-                    })
-                    remediations.append({
-                        "phase": "REMEDIATION",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "DELETE_RECORD",
-                        "state": "ABSENT",
-                        "evidence_id": "",
-                    })
-                    verifications.append({
-                        "phase": "VERIFICATION",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "VERIFY_RECORD_ABSENT",
-                        "state": "ABSENT",
-                        "evidence_id": "",
-                    })
-                elif state == "ABSENT":
-                    verifications.append({
-                        "phase": "VERIFICATION",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "VERIFY_RECORD_ABSENT",
-                        "state": "ABSENT",
-                        "evidence_id": ev_id,
-                    })
-
-            elif res_type in ["SUPPORT_MESSAGE", "EMAIL_DELIVERY_LOG"]:
-                if state == "PRESENT":
-                    has_violations = True
-                    findings.append({
-                        "phase": "FINDING",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "REPORT_EXPOSED_PII",
-                        "state": "PRESENT",
-                        "evidence_id": ev_id,
-                    })
-                    remediations.append({
-                        "phase": "REMEDIATION",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "REDACT_RECORD",
-                        "state": "REDACTED",
-                        "evidence_id": "",
-                    })
-                    verifications.append({
-                        "phase": "VERIFICATION",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "VERIFY_RECORD_REDACTED",
-                        "state": "REDACTED",
-                        "evidence_id": "",
-                    })
-                elif state == "REDACTED":
-                    verifications.append({
-                        "phase": "VERIFICATION",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "VERIFY_RECORD_REDACTED",
-                        "state": "REDACTED",
-                        "evidence_id": ev_id,
-                    })
-
-            elif res_type in ["ANALYTICS_PROFILE", "PRODUCT_TELEMETRY"]:
-                if state == "PRESENT":
-                    has_violations = True
-                    findings.append({
-                        "phase": "FINDING",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "REPORT_EXPOSED_PII",
-                        "state": "PRESENT",
-                        "evidence_id": ev_id,
-                    })
-                    remediations.append({
-                        "phase": "REMEDIATION",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "ANONYMIZE_RECORD",
-                        "state": "ANONYMIZED",
-                        "evidence_id": "",
-                    })
-                    verifications.append({
-                        "phase": "VERIFICATION",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "VERIFY_RECORD_ANONYMIZED",
-                        "state": "ANONYMIZED",
-                        "evidence_id": "",
-                    })
-                elif state == "ANONYMIZED":
-                    verifications.append({
-                        "phase": "VERIFICATION",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "VERIFY_RECORD_ANONYMIZED",
-                        "state": "ANONYMIZED",
-                        "evidence_id": ev_id,
-                    })
-
-            elif res_type in ["ACCOUNT_TOMBSTONE"]:
-                if state == "PRESENT":
-                    has_violations = True
-                    findings.append({
-                        "phase": "FINDING",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "REPORT_EXPOSED_PII",
-                        "state": "PRESENT",
-                        "evidence_id": ev_id,
-                    })
-                    remediations.append({
-                        "phase": "REMEDIATION",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "REDACT_RECORD",
-                        "state": "REDACTED",
-                        "evidence_id": "",
-                    })
-                    verifications.append({
-                        "phase": "VERIFICATION",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "VERIFY_RECORD_REDACTED",
-                        "state": "REDACTED",
-                        "evidence_id": "",
-                    })
-                elif state == "REDACTED":
-                    verifications.append({
-                        "phase": "VERIFICATION",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "VERIFY_RECORD_REDACTED",
-                        "state": "REDACTED",
-                        "evidence_id": ev_id,
-                    })
-
-            elif res_type in ["DATA_FLOW"]:
-                if state == "ACTIVE":
-                    has_violations = True
-                    findings.append({
-                        "phase": "FINDING",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "REPORT_ACTIVE_DATA_FLOW",
-                        "state": "ACTIVE",
-                        "evidence_id": ev_id,
-                    })
-                    remediations.append({
-                        "phase": "REMEDIATION",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "DISABLE_DATA_FLOW",
-                        "state": "DISABLED",
-                        "evidence_id": "",
-                    })
-                    verifications.append({
-                        "phase": "VERIFICATION",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "VERIFY_DATA_FLOW_DISABLED",
-                        "state": "DISABLED",
-                        "evidence_id": "",
-                    })
-                elif state == "DISABLED":
-                    verifications.append({
-                        "phase": "VERIFICATION",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "VERIFY_DATA_FLOW_DISABLED",
-                        "state": "DISABLED",
-                        "evidence_id": ev_id,
-                    })
-
-            elif res_type in ["BACKUP_ARCHIVE"]:
-                if state == "ACTIVE":
-                    has_violations = True
-                    findings.append({
-                        "phase": "FINDING",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "REPORT_RESTORE_RISK",
-                        "state": "ACTIVE",
-                        "evidence_id": ev_id,
-                    })
-                    remediations.append({
-                        "phase": "REMEDIATION",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "BLOCK_RESTORE",
-                        "state": "BLOCKED",
-                        "evidence_id": "",
-                    })
-                    verifications.append({
-                        "phase": "VERIFICATION",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "VERIFY_RESTORE_BLOCKED",
-                        "state": "BLOCKED",
-                        "evidence_id": "",
-                    })
-                elif state == "BLOCKED":
-                    verifications.append({
-                        "phase": "VERIFICATION",
-                        "system_id": sys_id,
-                        "resource_id": rid,
-                        "operation": "VERIFY_RESTORE_BLOCKED",
-                        "state": "BLOCKED",
-                        "evidence_id": ev_id,
-                    })
-
-            elif res_type in ["SECURITY_AUDIT_LOG", "LEGAL_HOLD_RECORD"]:
-                # Must be retained
+            if not eval_res["is_compliant"]:
+                has_violations = True
+                f = eval_res["finding"]
+                findings.append({
+                    "phase": "FINDING",
+                    "system_id": sys_id,
+                    "resource_id": rid,
+                    "operation": f["operation"],
+                    "state": f["state"],
+                    "evidence_id": ev_id,
+                })
+                r = eval_res["remediation"]
+                remediations.append({
+                    "phase": "REMEDIATION",
+                    "system_id": sys_id,
+                    "resource_id": rid,
+                    "operation": r["operation"],
+                    "state": r["state"],
+                    "evidence_id": "",
+                })
+                v = eval_res["verification"]
                 verifications.append({
                     "phase": "VERIFICATION",
                     "system_id": sys_id,
                     "resource_id": rid,
-                    "operation": "VERIFY_RECORD_PRESENT",
-                    "state": "PRESENT",
+                    "operation": v["operation"],
+                    "state": v["state"],
+                    "evidence_id": "",
+                })
+            else:
+                v = eval_res["verification"]
+                verifications.append({
+                    "phase": "VERIFICATION",
+                    "system_id": sys_id,
+                    "resource_id": rid,
+                    "operation": v["operation"],
+                    "state": v["state"],
                     "evidence_id": ev_id,
                 })
+
 
         # 6. Overall Deletion Status
         if has_violations:
