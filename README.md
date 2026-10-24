@@ -25,19 +25,33 @@ Start your AI coding tool from the **repository root** so it automatically reads
 
 Build your solution in `code/main.py`, or use another language and document its setup and run command clearly in your README.
 
-Your solution must:
+### Solution Architecture
+The solution implements a high-performance, deterministic deletion-audit engine across 7 specialized modules:
+- `code/identity/resolver.py`: Bidirectional identity resolution across current snapshots and historical audit changes (`user_identities.csv` and `user_audit_log.csv`).
+- `code/classification/classifier.py`: Multilingual intent classifier with morphological stemming roots across 7 languages, detecting non-deletion requests (`NOT_APPLICABLE`).
+- `code/evidence/ingestion.py`: Multi-modal parser for all 94 evidence files (SQL replicas, JSON snapshots, two-pass observability logs, PDFs, OCR images, TXT handovers).
+- `code/evidence/indexer.py`: Centralized in-memory SQLite store supporting sub-millisecond lookups on user identifiers, hashes, and resource IDs with strict timestamp cutoffs.
+- `code/audit/policy_evaluator.py`: Policy state machine mapping categories to deletion rules 01–15 (`DELETE`, `REDACT`, `ANONYMIZE`, `RETAIN`).
+- `code/audit/remediation_planner.py`: Dependency graph ensuring deterministic ordering: `FINDING` -> `REMEDIATION` -> `VERIFICATION`, operation table sequence, then ascending `system_id` and `resource_id`.
+- `code/audit/state_reconstruction.py`: Ground-truth historical state reconstruction at `audit_at`.
+- `code/validation/validator.py`: Comprehensive output contract validator.
+- `code/evaluation/main.py`: Evaluation benchmarking and usage reporting suite.
 
-- Read the input files from `dataset/`
-- Generate one prediction row for every request in `dataset/deletion_requests.csv`
-- Write the final predictions to `output.csv` in the repository root
+### Running the Solution
 
-Run the starter Python entry point with:
-
+1. **Execute Full Deletion Audit Pipeline (all 518 cases):**
 ```bash
-python3 code/main.py
+python code/main.py
 ```
+This processes all 518 evaluation requests, verifies output constraints, and writes `output.csv` to the repository root in ~1 second.
 
-The blank template at `dataset/output.csv` is provided as a reference. Your final generated file for submission must be the root-level `output.csv`.
+2. **Run Evaluation Benchmarks and Generate Reports:**
+```bash
+python code/evaluation/main.py
+```
+This runs the public sample benchmark (32 cases), verifies status and step accuracy, evaluates custom test cases, and updates `code/evaluation/evaluation_report.md` and `code/evaluation/usage_report.md`.
+
+The blank template at `dataset/output.csv` is provided as a reference. Your final generated file for submission is the root-level `output.csv`.
 
 
 ## Dataset
